@@ -7,8 +7,8 @@ export default function Home() {
   const [resultText, setResultText] = useState('');
 
   const formatNumber = (numStr: string): string => {
-    // Dacă se termină cu 00 și reprezintă ani tipici (1800-2000), nu modifica
-    if (numStr.endsWith('00') && numStr.length === 4) {
+    // Dacă NU conține puncte și se termină cu 00 și reprezintă ani tipici (1800-2000), nu modifica
+    if (!numStr.includes('.') && numStr.endsWith('00') && numStr.length === 4) {
       const year = parseInt(numStr);
       if (year >= 1800 && year <= 2000) {
         return numStr;
