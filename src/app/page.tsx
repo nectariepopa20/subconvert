@@ -10,14 +10,14 @@ export default function Home() {
     let converted = sourceText;
 
     // Înlocuiește diacritice românești cu virgulă în diacritice cu sedilă
-    converted = converted.replace(/ș/g, 'ș'); // ș mică cu virgulă → ș mică cu sedilă
-    converted = converted.replace(/Ș/g, 'Ș'); // Ș mare cu virgulă → Ș mare cu sedilă
-    converted = converted.replace(/ț/g, 'ț'); // ț mică cu virgulă → ț mică cu sedilă
-    converted = converted.replace(/Ț/g, 'Ț'); // Ț mare cu virgulă → Ț mare cu sedilă
+    converted = converted.replace(/\u0219/g, '\u015F'); // ș mică cu virgulă (U+0219) → ș mică cu sedilă (U+015F)
+    converted = converted.replace(/\u0218/g, '\u015E'); // Ș mare cu virgulă (U+0218) → Ș mare cu sedilă (U+015E)
+    converted = converted.replace(/\u021B/g, '\u0163'); // ț mică cu virgulă (U+021B) → ț mică cu sedilă (U+0163)
+    converted = converted.replace(/\u021A/g, '\u0162'); // Ț mare cu virgulă (U+021A) → Ț mare cu sedilă (U+0162)
 
     // Transformă ghilimele românești în ghilimele englezești
-    converted = converted.replace(/„/g, '"'); // ghilimele românești stânga
-    converted = converted.replace(/"/g, '"'); // ghilimele românești dreapta
+    converted = converted.replace(/\u201E/g, '"'); // ghilimele românești stânga (U+201E) → ghilimeaua englezească
+    converted = converted.replace(/\u201D/g, '"'); // ghilimele românești dreapta (U+201D) → ghilimeaua englezească
 
     // Adaugă spațiu înainte de ? și ! dacă nu există deja
     converted = converted.replace(/([^ ])([?!])(?![?!])/g, '$1 $2');
