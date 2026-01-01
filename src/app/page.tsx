@@ -22,6 +22,9 @@ export default function Home() {
     // Adaugă spațiu înainte de ? și ! dacă nu există deja
     converted = converted.replace(/([^ ])([?!])(?![?!])/g, '$1 $2');
 
+    // Adaugă spațiu după "..." la începutul liniilor dacă nu există deja
+    converted = converted.replace(/^\.\.\.([^\s])/gm, '... $1');
+
     setResultText(converted);
   };
 
