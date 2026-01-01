@@ -6,6 +6,30 @@ export default function Home() {
   const [sourceText, setSourceText] = useState('');
   const [resultText, setResultText] = useState('');
 
+  const formatNumber = (numStr: string): string => {
+    // Dacă se termină cu 00 și reprezintă ani tipici (1800-2000), nu modifica
+    if (numStr.endsWith('00') && numStr.length === 4) {
+      const year = parseInt(numStr);
+      if (year >= 1800 && year <= 2000) {
+        return numStr;
+      }
+    }
+
+    // Pentru toate celelalte cazuri, formatează
+    // Înlocuiește punctele cu spații mai întâi
+    let formatted = numStr.replace(/\./g, ' ');
+
+    // Obține toate cifrele fără spații
+    const digitsOnly = formatted.replace(/\s/g, '');
+
+    // Dacă are mai mult de 4 cifre SAU se termină cu 00 dar nu este an tipic, adaugă spații
+    if (digitsOnly.length > 4 || (digitsOnly.endsWith('00') && digitsOnly.length === 4)) {
+      formatted = digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    return formatted;
+  };
+
   const convertText = () => {
     let converted = sourceText;
 
@@ -25,6 +49,9 @@ export default function Home() {
     // Adaugă spațiu după "..." la începutul liniilor dacă nu există deja
     converted = converted.replace(/^\.\.\.([^\s])/gm, '... $1');
 
+    // Formatează numerele (înlocuiește puncte cu spații și adaugă spații la numere mari)
+    converted = converted.replace(/\b\d+(?:\.\d+)*\b/g, (match) => formatNumber(match));
+
     setResultText(converted);
   };
 
@@ -40,7 +67,9 @@ export default function Home() {
           Transformă diacriticele cu virgulă în diacritice cu sedilă (ș ț Ș Ț),
           convertește ghilimelele românești în ghilimele englezești,
           adaugă spații înainte de semnele de întrebare și exclamare,
-          și corectează spațierea după punctele de suspensie (...).
+          corectează spațierea după punctele de suspensie (...),
+          și formatează numerele (înlocuiește punctele cu spații și adaugă spații la numere mari,
+          cu excepția anilor tipici 1800-2000).
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
