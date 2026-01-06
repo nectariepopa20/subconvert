@@ -63,7 +63,7 @@ export default function Home() {
         const remainingText = string.substring(offset + match.length);
         const nextLines = remainingText.split('\n').slice(0, 2); // verifică următoarele 2 linii
 
-        const hasTimestamp = nextLines.some(line =>
+        const hasTimestamp = nextLines.some((line: string) =>
           /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(line.trim())
         );
 
