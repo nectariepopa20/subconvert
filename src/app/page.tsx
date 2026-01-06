@@ -50,7 +50,32 @@ export default function Home() {
     converted = converted.replace(/^\.\.\.([^\s])/gm, '... $1');
 
     // Formatează numerele (înlocuiește puncte cu spații și adaugă spații la numere mari)
-    converted = converted.replace(/\b\d+(?:\.\d+)*\b/g, (match) => formatNumber(match));
+    // Dar NU modifica numerele care sunt deasupra timestamp-urilor SRT (linii cu numere simple)
+    converted = converted.replace(/\b\d+(?:\.\d+)*\b/g, (match, offset, string) => {
+      // Verifică dacă numărul este la începutul liniei și urmează de timestamp SRT
+      const lines = string.substring(0, offset + match.length).split('\n');
+      const currentLine = lines[lines.length - 1];
+      const lineStart = currentLine.match(/^\d+/);
+
+      if (lineStart && lineStart[0] === match) {
+        // Verifică dacă linia următoare conține un timestamp SRT
+        const nextLineIndex = lines.length;
+        const remainingText = string.substring(offset + match.length);
+        const nextLines = remainingText.split('\n').slice(0, 2); // verifică următoarele 2 linii
+
+        const hasTimestamp = nextLines.some(line =>
+          /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(line.trim())
+        );
+
+        if (hasTimestamp) {
+          // Nu modifica numărul liniei de subtitrare
+          return match;
+        }
+      }
+
+      // Pentru toate celelalte numere, aplică formatarea
+      return formatNumber(match);
+    });
 
     setResultText(converted);
   };
