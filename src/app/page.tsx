@@ -121,13 +121,14 @@ export default function Home() {
 
         // Decidem dacă normalizăm:
         // - dacă blocul are deja ghilimele
-        // - SAU dacă este între două blocuri (nu neapărat vecine) cu ghilimele, DAR numai dacă acele
-        //   blocuri capete nu sunt ambele complet ghilimeate (adică dialog incomplet, de reparat)
+        // - SAU dacă este între două blocuri (nu neapărat vecine) cu ghilimele,
+        //   iar ambele capete sunt blocuri incomplete (nu complet ghilimeate) – caz de dialog neînchis
         const shouldNormalize =
           hasAnyQuotes ||
           (!!prevQuoted &&
             !!nextQuoted &&
-            !(prevQuoted.allLinesFullyWrapped && nextQuoted.allLinesFullyWrapped));
+            !prevQuoted.allLinesFullyWrapped &&
+            !nextQuoted.allLinesFullyWrapped);
 
         if (shouldNormalize && subtitleLines.length > 0) {
           for (let k = 0; k < subtitleLines.length; k++) {
