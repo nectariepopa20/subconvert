@@ -58,16 +58,24 @@ export default function Home() {
             const startsWithQuote =
               t.startsWith('„') || t.startsWith('”') || t.startsWith('"');
             const endsWithQuote = t.endsWith('„') || t.endsWith('”') || t.endsWith('"');
+            const quoteCount = (t.match(/[„”"]/g) || []).length;
+            const hasInternalPair = quoteCount >= 2;
 
-            if (startsWithQuote || endsWithQuote) {
+            if (quoteCount > 0) {
               hasAnyQuotes = true;
             }
 
-            // Dacă există vreo linie cu ghilimele doar pe o singură margine
-            // (sau deloc pe margini, dar vom considera doar marginea),
-            // blocul NU este complet ghilimeat.
+            // Considerăm linia „completă” dacă are ghilimele pe ambele margini
+            // sau dacă are o pereche internă de ghilimele (ex: „...”). Dacă are
+            // o singură ghilimea (oriunde) sau doar pe o margine, marcam blocul
+            // ca incomplet.
             if (startsWithQuote !== endsWithQuote) {
               allLinesFullyWrapped = false;
+            } else if (!startsWithQuote && !endsWithQuote) {
+              if (quoteCount === 1) {
+                allLinesFullyWrapped = false;
+              }
+              // dacă quoteCount >= 2, avem o pereche internă – o considerăm completă
             }
           }
         }
