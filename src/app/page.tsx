@@ -179,6 +179,9 @@ export default function Home() {
                 !nextQuoted.allLinesFullyWrapped)));
 
         if (shouldNormalize && subtitleLines.length > 0) {
+          const firstIdx = 0;
+          const lastIdx = subtitleLines.length - 1;
+
           const stripLeadingQuote = (s: string) => s.replace(/^[„”"]\s*/, '');
           const stripTrailingQuote = (s: string) =>
             s
@@ -190,42 +193,39 @@ export default function Home() {
             return stripTrailingQuote(stripLeadingQuote(t));
           });
 
-          // Identificăm liniile care au ghilimele pe margini în textul original
-          const edgeQuotedIndices: number[] = [];
-          subtitleLines.forEach((line, idx) => {
-            const t = line.trim();
-            const starts = /^[„”"]/.test(t);
-            const ends = /[„”"]\s*[.!?,;:]?$/.test(t);
-            if (starts || ends) edgeQuotedIndices.push(idx);
-          });
+          // Determină liniile candidate pentru deschidere/închidere în funcție de ghilimele existente
+          const hasStartQuote = subtitleLines.map((line) => /^[„”"]/.test(line.trim()));
+          const hasEndQuote = subtitleLines.map((line) =>
+            /[„”"]\s*[.!?,;:]?$/.test(line.trim()),
+          );
 
-          const firstIdx = edgeQuotedIndices.length > 0 ? Math.min(...edgeQuotedIndices) : 0;
-          const lastIdx =
-            edgeQuotedIndices.length > 0
-              ? Math.max(...edgeQuotedIndices)
-              : subtitleLines.length - 1;
+          let openIdx = hasStartQuote.findIndex(Boolean);
+          if (openIdx === -1) openIdx = firstIdx;
+          let closeIdx = -1;
+          for (let k = lastIdx; k >= 0; k--) {
+            if (hasEndQuote[k]) {
+              closeIdx = k;
+              break;
+            }
+          }
+          if (closeIdx === -1) closeIdx = openIdx;
 
-          if (firstIdx === lastIdx) {
-            // Doar o linie are ghilimele la margini: învelim doar acea linie
+          if (openIdx === closeIdx) {
+            // Un singur rând învelit
+            subtitleLines[openIdx] = `"${cleaned[openIdx]}"`;
+            // restul rămân curate
             for (let k = 0; k < subtitleLines.length; k++) {
-              if (k === firstIdx) {
-                subtitleLines[k] = `"${cleaned[k]}"`;
+              if (k !== openIdx) subtitleLines[k] = cleaned[k];
+            }
+          } else {
+            for (let k = 0; k < subtitleLines.length; k++) {
+              if (k === openIdx) {
+                subtitleLines[k] = `"${cleaned[k]}`;
+              } else if (k === closeIdx) {
+                subtitleLines[k] = `${cleaned[k]}"`;
               } else {
                 subtitleLines[k] = cleaned[k];
               }
-            }
-          } else {
-            // Interval de linii cu ghilimele: deschidere pe prima, închidere pe ultima, mijlocul neatins
-            for (let k = 0; k < subtitleLines.length; k++) {
-              if (k === firstIdx) {
-                subtitleLines[k] = `"${cleaned[k]}`;
-                continue;
-              }
-              if (k === lastIdx) {
-                subtitleLines[k] = `${cleaned[k]}"`;
-                continue;
-              }
-              subtitleLines[k] = cleaned[k];
             }
           }
         }
