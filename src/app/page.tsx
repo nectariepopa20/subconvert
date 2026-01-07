@@ -90,6 +90,25 @@ export default function Home() {
     const result: string[] = [];
     let currentBlockIndex = 0;
 
+    // Helperi pentru a găsi cel mai apropiat bloc cu ghilimele înainte / după
+    const findPrevQuotedBlock = (index: number): SubtitleBlock | undefined => {
+      for (let j = index - 1; j >= 0; j--) {
+        if (blocks[j].hasAnyQuotes) {
+          return blocks[j];
+        }
+      }
+      return undefined;
+    };
+
+    const findNextQuotedBlock = (index: number): SubtitleBlock | undefined => {
+      for (let j = index + 1; j < blocks.length; j++) {
+        if (blocks[j].hasAnyQuotes) {
+          return blocks[j];
+        }
+      }
+      return undefined;
+    };
+
     i = 0;
     while (i < lines.length) {
       const block = blocks[currentBlockIndex];
@@ -97,20 +116,18 @@ export default function Home() {
       if (block && i === block.startIndex) {
         const { startIndex, endIndex, subtitleLines, hasAnyQuotes } = block;
 
-        const prev = blocks[currentBlockIndex - 1];
-        const next = blocks[currentBlockIndex + 1];
+        const prevQuoted = findPrevQuotedBlock(currentBlockIndex);
+        const nextQuoted = findNextQuotedBlock(currentBlockIndex);
 
         // Decidem dacă normalizăm:
         // - dacă blocul are deja ghilimele
-        // - SAU dacă este între două blocuri cu ghilimele, DAR numai dacă cele două blocuri vecine
-        //   nu sunt deja complet ghilimeate (adică ele însele sunt cazuri incomplete la nivel de dialog)
+        // - SAU dacă este între două blocuri (nu neapărat vecine) cu ghilimele, DAR numai dacă acele
+        //   blocuri capete nu sunt ambele complet ghilimeate (adică dialog incomplet, de reparat)
         const shouldNormalize =
           hasAnyQuotes ||
-          (!!prev &&
-            !!next &&
-            prev.hasAnyQuotes &&
-            next.hasAnyQuotes &&
-            !(prev.allLinesFullyWrapped && next.allLinesFullyWrapped));
+          (!!prevQuoted &&
+            !!nextQuoted &&
+            !(prevQuoted.allLinesFullyWrapped && nextQuoted.allLinesFullyWrapped));
 
         if (shouldNormalize && subtitleLines.length > 0) {
           for (let k = 0; k < subtitleLines.length; k++) {
