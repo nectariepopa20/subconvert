@@ -157,7 +157,6 @@ export default function Home() {
 
       if (lineStart && lineStart[0] === match) {
         // Verifică dacă linia următoare conține un timestamp SRT
-        const nextLineIndex = lines.length;
         const remainingText = string.substring(offset + match.length);
         const nextLines = remainingText.split('\n').slice(0, 2); // verifică următoarele 2 linii
 
