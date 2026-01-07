@@ -55,28 +55,33 @@ export default function Home() {
             const t = rawLine.trim();
             if (!t) continue;
 
-            const startsWithQuote =
-              t.startsWith('„') || t.startsWith('”') || t.startsWith('"');
-            const endsWithQuote = t.endsWith('„') || t.endsWith('”') || t.endsWith('"');
-            const quoteCount = (t.match(/[„”"]/g) || []).length;
-            const hasInternalPair = quoteCount >= 2;
+            const startsWithQuote = /^[„”"]/.test(t);
+            const endsWithQuote = /[„”"]$/.test(t);
+            const quoteCount = (t.match(/[„”"]/g) ?? []).length;
+            const hasBothEdges = startsWithQuote && endsWithQuote;
+            const hasEdgeQuote = startsWithQuote || endsWithQuote;
+            const hasInlineCompleteQuotes = quoteCount >= 2 && !hasBothEdges && !startsWithQuote;
 
-            if (quoteCount > 0) {
+            // Dacă avem ghilimele complete în interior (citat în linie) dar nu la margini,
+            // nu tratăm linia ca bloc de dialog de normalizat.
+            if (hasInlineCompleteQuotes) {
+              continue;
+            }
+
+            // Dacă are ghilimele pe ambele margini, e un bloc deja delimitat
+            if (hasBothEdges) {
               hasAnyQuotes = true;
+              continue;
             }
 
-            // Considerăm linia „completă” dacă are ghilimele pe ambele margini
-            // sau dacă are o pereche internă de ghilimele (ex: „...”). Dacă are
-            // o singură ghilimea (oriunde) sau doar pe o margine, marcam blocul
-            // ca incomplet.
-            if (startsWithQuote !== endsWithQuote) {
+            // Dacă are ghilimele doar pe o margine (sau doar una la margine), îl marcăm ca incomplet
+            if (hasEdgeQuote) {
+              hasAnyQuotes = true;
               allLinesFullyWrapped = false;
-            } else if (!startsWithQuote && !endsWithQuote) {
-              if (quoteCount === 1) {
-                allLinesFullyWrapped = false;
-              }
-              // dacă quoteCount >= 2, avem o pereche internă – o considerăm completă
+              continue;
             }
+
+            // Dacă nu are ghilimele la margini, nu schimbăm starea blocului.
           }
         }
 
