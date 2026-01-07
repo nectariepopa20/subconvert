@@ -226,6 +226,12 @@ export default function Home() {
             // punem închiderea pe ultimul rând; altfel, pe același rând.
             closeIdx = subtitleLines.length > 1 && openIdx !== lastIdx ? lastIdx : openIdx;
           }
+          const anyEndAfterOpen = hasEndQuote.some((v, idx) => idx > openIdx && v);
+          if (closeIdx === openIdx && subtitleLines.length > 1 && !anyEndAfterOpen) {
+            // Avem o deschidere pe prima linie, dar nicio închidere pe liniile următoare.
+            // Mutăm închiderea pe ultimul rând al blocului.
+            closeIdx = lastIdx;
+          }
 
           if (openIdx === closeIdx) {
             // Un singur rând învelit
