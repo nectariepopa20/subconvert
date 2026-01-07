@@ -179,16 +179,36 @@ export default function Home() {
                 !nextQuoted.allLinesFullyWrapped)));
 
         if (shouldNormalize && subtitleLines.length > 0) {
-          for (let k = 0; k < subtitleLines.length; k++) {
-            const original = subtitleLines[k];
-            const trimmed = original.trim();
+          // Normalizăm la nivel de bloc: o singură pereche de ghilimele pentru întregul bloc,
+          // nu ghilimele separate pe fiecare rând din același bloc.
+          const firstIdx = subtitleLines.findIndex((l) => l.trim().length > 0);
+          const lastIdx =
+            subtitleLines.length -
+            1 -
+            [...subtitleLines].reverse().findIndex((l) => l.trim().length > 0);
 
-            // Elimină doar ghilimelele de la margini (românești sau englezești)
-            const inner = trimmed
-              .replace(/^[„”"]/, '')
-              .replace(/[„”"]$/, '');
+          if (firstIdx !== -1 && lastIdx !== -1) {
+            for (let k = 0; k < subtitleLines.length; k++) {
+              const trimmed = subtitleLines[k].trim();
+              if (!trimmed) {
+                subtitleLines[k] = subtitleLines[k];
+                continue;
+              }
 
-            subtitleLines[k] = `"${inner}"`;
+              const clean = trimmed
+                .replace(/^[„”"]\s*/, '')
+                .replace(/\s*[„”"]$/, '');
+
+              if (firstIdx === lastIdx) {
+                subtitleLines[k] = `"${clean}"`;
+              } else if (k === firstIdx) {
+                subtitleLines[k] = `"${clean}`;
+              } else if (k === lastIdx) {
+                subtitleLines[k] = `${clean}"`;
+              } else {
+                subtitleLines[k] = clean;
+              }
+            }
           }
         }
 
