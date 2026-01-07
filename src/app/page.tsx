@@ -15,6 +15,7 @@ export default function Home() {
       subtitleLines: string[];
       hasAnyQuotes: boolean;
       allLinesFullyWrapped: boolean;
+      hasIncompleteEdgeQuotes: boolean;
     };
 
     const blocks: SubtitleBlock[] = [];
@@ -49,11 +50,15 @@ export default function Home() {
 
         let hasAnyQuotes = false;
         let allLinesFullyWrapped = true;
+        let textLineCount = 0;
+        let balancedEdgeLines = 0;
+        let incompleteEdgeLines = 0;
 
         if (subtitleLines.length > 0) {
           for (const rawLine of subtitleLines) {
             const t = rawLine.trim();
             if (!t) continue;
+            textLineCount++;
 
             const startsWithQuote = /^[„”"]/.test(t);
             const endsWithQuote = /[„”"]$/.test(t);
@@ -70,14 +75,13 @@ export default function Home() {
 
             // Dacă are ghilimele pe ambele margini, e un bloc deja delimitat
             if (hasBothEdges) {
-              hasAnyQuotes = true;
+              balancedEdgeLines++;
               continue;
             }
 
             // Dacă are ghilimele doar pe o margine (sau doar una la margine), îl marcăm ca incomplet
             if (hasEdgeQuote) {
-              hasAnyQuotes = true;
-              allLinesFullyWrapped = false;
+              incompleteEdgeLines++;
               continue;
             }
 
@@ -85,12 +89,20 @@ export default function Home() {
           }
         }
 
+        allLinesFullyWrapped =
+          textLineCount > 0 && balancedEdgeLines > 0 && balancedEdgeLines === textLineCount;
+
+        const hasIncompleteEdgeQuotes = incompleteEdgeLines > 0;
+        const hasFullyQuotedBlock = allLinesFullyWrapped;
+        hasAnyQuotes = hasIncompleteEdgeQuotes || hasFullyQuotedBlock;
+
         blocks.push({
           startIndex,
           endIndex,
           subtitleLines,
           hasAnyQuotes,
           allLinesFullyWrapped,
+          hasIncompleteEdgeQuotes,
         });
 
         i = endIndex + 1;
@@ -135,7 +147,8 @@ export default function Home() {
       const block = blocks[currentBlockIndex];
 
       if (block && i === block.startIndex) {
-        const { startIndex, endIndex, subtitleLines, hasAnyQuotes } = block;
+        const { startIndex, endIndex, subtitleLines, hasAnyQuotes, hasIncompleteEdgeQuotes } =
+          block;
 
         const prevQuoted = findPrevQuotedBlock(currentBlockIndex);
         const nextQuoted = findNextQuotedBlock(currentBlockIndex);
@@ -145,7 +158,7 @@ export default function Home() {
         // - SAU dacă este între două blocuri (nu neapărat vecine) cu ghilimele,
         //   iar ambele capete sunt blocuri incomplete (nu complet ghilimeate) – caz de dialog neînchis
         const shouldNormalize =
-          hasAnyQuotes ||
+          hasIncompleteEdgeQuotes ||
           (!!prevQuoted &&
             !!nextQuoted &&
             !prevQuoted.allLinesFullyWrapped &&
