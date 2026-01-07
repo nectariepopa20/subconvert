@@ -87,7 +87,20 @@ export default function Home() {
               continue;
             }
 
-            // Dacă nu are ghilimele la margini, nu schimbăm starea blocului.
+            // Dacă nu are ghilimele la margini:
+            // - dacă are număr impar de ghilimele (ex: un singur „ în interior), considerăm linia incompletă
+            // - dacă are număr par de ghilimele, o considerăm echilibrată și o lăsăm neatinsă
+            if (quoteCount > 0 && quoteCount % 2 === 1) {
+              incompleteEdgeLines++;
+              continue;
+            }
+
+            if (quoteCount > 0 && quoteCount % 2 === 0) {
+              balancedEdgeLines++;
+              continue;
+            }
+
+            // Dacă nu are ghilimele deloc, ignorăm
           }
         }
 
