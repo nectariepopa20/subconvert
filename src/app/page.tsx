@@ -179,36 +179,38 @@ export default function Home() {
                 !nextQuoted.allLinesFullyWrapped)));
 
         if (shouldNormalize && subtitleLines.length > 0) {
-          // Normalizăm la nivel de bloc: o singură pereche de ghilimele pentru întregul bloc,
-          // nu ghilimele separate pe fiecare rând din același bloc.
-          const firstIdx = subtitleLines.findIndex((l) => l.trim().length > 0);
-          const lastIdx =
-            subtitleLines.length -
-            1 -
-            [...subtitleLines].reverse().findIndex((l) => l.trim().length > 0);
+          const firstIdx = 0;
+          const lastIdx = subtitleLines.length - 1;
 
-          if (firstIdx !== -1 && lastIdx !== -1) {
-            for (let k = 0; k < subtitleLines.length; k++) {
-              const trimmed = subtitleLines[k].trim();
-              if (!trimmed) {
-                subtitleLines[k] = subtitleLines[k];
-                continue;
-              }
+          for (let k = 0; k < subtitleLines.length; k++) {
+            const original = subtitleLines[k];
+            const trimmed = original.trim();
 
-              const clean = trimmed
-                .replace(/^[„”"]\s*/, '')
-                .replace(/\s*[„”"]$/, '');
+            // Curăță ghilimelele de la margini (inclusiv cu punctuație lipită la final)
+            const cleaned = trimmed
+              .replace(/^[„”"]\s*/, '')
+              .replace(/\s*[„”"]\s*$/, '');
 
-              if (firstIdx === lastIdx) {
-                subtitleLines[k] = `"${clean}"`;
-              } else if (k === firstIdx) {
-                subtitleLines[k] = `"${clean}`;
-              } else if (k === lastIdx) {
-                subtitleLines[k] = `${clean}"`;
-              } else {
-                subtitleLines[k] = clean;
-              }
+            // Dacă blocul are o singură linie de text, pun ghilimele doar pe margini o singură dată
+            if (firstIdx === lastIdx) {
+              subtitleLines[k] = `"${cleaned}"`;
+              continue;
             }
+
+            // Prima linie primește doar ghilimeaua de deschidere
+            if (k === firstIdx) {
+              subtitleLines[k] = `"${cleaned}`;
+              continue;
+            }
+
+            // Ultima linie primește doar ghilimeaua de închidere
+            if (k === lastIdx) {
+              subtitleLines[k] = `${cleaned}"`;
+              continue;
+            }
+
+            // Liniile din mijloc rămân fără ghilimele (dar cu textul curățat)
+            subtitleLines[k] = cleaned;
           }
         }
 
