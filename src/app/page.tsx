@@ -17,6 +17,7 @@ export default function Home() {
       allLinesFullyWrapped: boolean;
       hasIncompleteEdgeQuotes: boolean;
       hasMixedFullyQuotedAndPlain: boolean;
+      hasInternalUnbalanced: boolean;
     };
 
     const blocks: SubtitleBlock[] = [];
@@ -54,6 +55,7 @@ export default function Home() {
         let textLineCount = 0;
         let balancedEdgeLines = 0;
         let incompleteEdgeLines = 0;
+        let hasInternalUnbalanced = false;
 
         if (subtitleLines.length > 0) {
           for (const rawLine of subtitleLines) {
@@ -91,6 +93,7 @@ export default function Home() {
             // - dacă are număr impar de ghilimele (ex: un singur „ în interior), considerăm linia incompletă
             // - dacă are număr par de ghilimele, o considerăm echilibrată și o lăsăm neatinsă
             if (quoteCount > 0 && quoteCount % 2 === 1) {
+              hasInternalUnbalanced = true;
               incompleteEdgeLines++;
               continue;
             }
@@ -123,6 +126,7 @@ export default function Home() {
           allLinesFullyWrapped,
           hasIncompleteEdgeQuotes,
           hasMixedFullyQuotedAndPlain,
+          hasInternalUnbalanced,
         });
 
         i = endIndex + 1;
@@ -174,6 +178,7 @@ export default function Home() {
           hasAnyQuotes,
           hasIncompleteEdgeQuotes,
           hasMixedFullyQuotedAndPlain,
+          hasInternalUnbalanced,
         } = block;
 
         const prevQuoted = findPrevQuotedBlock(currentBlockIndex);
@@ -226,14 +231,12 @@ export default function Home() {
             // punem închiderea pe ultimul rând; altfel, pe același rând.
             closeIdx = subtitleLines.length > 1 && openIdx !== lastIdx ? lastIdx : openIdx;
           }
-          const anyEndAfterOpen = hasEndQuote.some((v, idx) => idx > openIdx && v);
-          if (closeIdx === openIdx && subtitleLines.length > 1 && !anyEndAfterOpen) {
-            // Avem o deschidere pe prima linie, dar nicio închidere pe liniile următoare.
-            // Mutăm închiderea pe ultimul rând al blocului.
-            closeIdx = lastIdx;
-          }
 
-          if (openIdx === closeIdx) {
+          if (hasInternalUnbalanced && openIdx === closeIdx && subtitleLines.length === 1) {
+            // Linie cu citat intern neînchis (număr impar de ghilimele) și fără alte linii:
+            // adaug doar ghilimeaua de închidere la final.
+            subtitleLines[openIdx] = `${cleaned[openIdx]}"`;
+          } else if (openIdx === closeIdx) {
             // Un singur rând învelit
             subtitleLines[openIdx] = `"${cleaned[openIdx]}"`;
             // restul rămân curate
