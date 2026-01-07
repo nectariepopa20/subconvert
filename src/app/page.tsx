@@ -8,90 +8,133 @@ export default function Home() {
 
   const fixIncompleteQuotationMarks = (text: string): string => {
     const lines = text.split('\n');
-    const result: string[] = [];
+
+    type SubtitleBlock = {
+      startIndex: number;
+      endIndex: number;
+      subtitleLines: string[];
+      hasAnyQuotes: boolean;
+    };
+
+    const blocks: SubtitleBlock[] = [];
     let i = 0;
 
+    // Prima trecere: identificăm blocurile de subtitrare și dacă folosesc ghilimele
     while (i < lines.length) {
-      // Check if this is a subtitle number
       const subtitleNumberMatch = lines[i].match(/^\d+$/);
+
       if (subtitleNumberMatch) {
         const startIndex = i;
         let endIndex = i;
 
-        // Find the end of this subtitle block (next subtitle number or end of file)
+        // Caută sfârșitul blocului curent (până la următorul număr de subtitrare sau EOF)
         while (endIndex + 1 < lines.length && !/^\d+$/.test(lines[endIndex + 1])) {
           endIndex++;
         }
 
-        // Extract the subtitle lines (skip the number and timestamp)
         const subtitleLines: string[] = [];
+
+        // Extrage liniile de text (sări peste număr și timestamp)
         for (let j = startIndex + 2; j <= endIndex; j++) {
-          if (lines[j] && lines[j].trim() && !/^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(lines[j].trim())) {
-            subtitleLines.push(lines[j]);
+          const line = lines[j];
+          if (
+            line &&
+            line.trim() &&
+            !/^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(line.trim())
+          ) {
+            subtitleLines.push(line);
           }
         }
 
-        // Check if this subtitle block has incomplete quotation marks
-        if (subtitleLines.length > 1) {
-          const hasOpeningQuotes = subtitleLines.some(line => line.trim().startsWith('"') || line.trim().startsWith('„'));
-          const hasClosingQuotes = subtitleLines.some(line => line.trim().endsWith('"') || line.trim().endsWith('"'));
+        let hasAnyQuotes = false;
 
-          if (hasOpeningQuotes && hasClosingQuotes) {
-            // Check for incomplete patterns
-            let needsFix = false;
-            const firstLine = subtitleLines[0]?.trim() || '';
-            const lastLine = subtitleLines[subtitleLines.length - 1]?.trim() || '';
+        if (subtitleLines.length > 0) {
+          hasAnyQuotes = subtitleLines.some((rawLine) => {
+            const t = rawLine.trim();
+            return (
+              t.startsWith('„') ||
+              t.startsWith('”') ||
+              t.startsWith('"') ||
+              t.endsWith('„') ||
+              t.endsWith('”') ||
+              t.endsWith('"')
+            );
+          });
+        }
 
-            // Pattern 1: First lines have opening quotes but no closing quotes, last line has closing quote
-            if (subtitleLines.slice(0, -1).some(line => (line.trim().startsWith('"') || line.trim().startsWith('„')) &&
-                                                       !(line.trim().endsWith('"') || line.trim().endsWith('"'))) &&
-                (lastLine.endsWith('"') || lastLine.endsWith('"'))) {
-              needsFix = true;
-            }
+        blocks.push({
+          startIndex,
+          endIndex,
+          subtitleLines,
+          hasAnyQuotes,
+        });
 
-            // Pattern 2: Only first line has opening quote, only last line has closing quote
-            if ((firstLine.startsWith('"') || firstLine.startsWith('„')) &&
-                !(firstLine.endsWith('"') || firstLine.endsWith('"')) &&
-                subtitleLines.slice(1, -1).every(line => !line.trim().startsWith('"') && !line.trim().startsWith('„') &&
-                                                       !line.trim().endsWith('"') && !line.trim().endsWith('"')) &&
-                (lastLine.endsWith('"') || lastLine.endsWith('"')) &&
-                !(lastLine.startsWith('"') || lastLine.startsWith('„'))) {
-              needsFix = true;
-            }
+        i = endIndex + 1;
+      } else {
+        i++;
+      }
+    }
 
-            if (needsFix) {
-              // Fix the quotation marks by adding closing quotes to lines that have opening quotes but no closing quotes
-              for (let k = 0; k < subtitleLines.length; k++) {
-                let line = subtitleLines[k].trim();
-                if ((line.startsWith('"') || line.startsWith('„')) && !(line.endsWith('"') || line.endsWith('"'))) {
-                  // Replace Romanian opening quotes with English quotes and add closing quote
-                  line = line.replace(/^„/, '"').replace(/^"/, '"') + '"';
-                } else if (k === subtitleLines.length - 1 && (line.endsWith('"') || line.endsWith('"')) && !(line.startsWith('"') || line.startsWith('„'))) {
-                  // If last line has closing quote but no opening quote, add opening quote
-                  line = '"' + line.replace(/[""]$/, '') + '"';
-                }
-                subtitleLines[k] = line;
-              }
-            }
+    // A doua trecere: normalizăm ghilimelele, având context de blocuri vecine
+    const result: string[] = [];
+    let currentBlockIndex = 0;
+
+    i = 0;
+    while (i < lines.length) {
+      const block = blocks[currentBlockIndex];
+
+      if (block && i === block.startIndex) {
+        const { startIndex, endIndex, subtitleLines, hasAnyQuotes } = block;
+
+        const prev = blocks[currentBlockIndex - 1];
+        const next = blocks[currentBlockIndex + 1];
+
+        // Decidem dacă normalizăm:
+        // - dacă blocul are deja ghilimele
+        // - SAU dacă este între două blocuri cu ghilimele (cazul cu ghilimele doar la început și sfârșit)
+        const shouldNormalize =
+          hasAnyQuotes || (!!prev && !!next && prev.hasAnyQuotes && next.hasAnyQuotes);
+
+        if (shouldNormalize && subtitleLines.length > 0) {
+          for (let k = 0; k < subtitleLines.length; k++) {
+            const original = subtitleLines[k];
+            const trimmed = original.trim();
+
+            // Elimină doar ghilimelele de la margini (românești sau englezești)
+            const inner = trimmed
+              .replace(/^[„”"]/, '')
+              .replace(/[„”"]$/, '');
+
+            subtitleLines[k] = `"${inner}"`;
           }
         }
 
-        // Add the subtitle block back
-        result.push(lines[startIndex]); // subtitle number
-        if (startIndex + 1 < lines.length) result.push(lines[startIndex + 1]); // timestamp
+        // Adăugăm blocul în rezultat (număr + timestamp)
+        result.push(lines[startIndex]);
+        if (startIndex + 1 < lines.length) {
+          result.push(lines[startIndex + 1]);
+        }
 
-        // Add the (possibly modified) subtitle lines
+        // Adăugăm liniile de text (modificate sau nu)
         let subtitleIndex = 0;
         for (let j = startIndex + 2; j <= endIndex; j++) {
-          if (lines[j] && lines[j].trim() && !/^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(lines[j].trim())) {
-            result.push(subtitleIndex < subtitleLines.length ? subtitleLines[subtitleIndex] : lines[j]);
+          const line = lines[j];
+          if (
+            line &&
+            line.trim() &&
+            !/^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(line.trim())
+          ) {
+            result.push(
+              subtitleIndex < subtitleLines.length ? subtitleLines[subtitleIndex] : line,
+            );
             subtitleIndex++;
           } else {
-            result.push(lines[j]);
+            result.push(line);
           }
         }
 
         i = endIndex + 1;
+        currentBlockIndex++;
       } else {
         result.push(lines[i]);
         i++;
