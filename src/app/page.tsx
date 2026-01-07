@@ -91,8 +91,14 @@ export default function Home() {
     let currentBlockIndex = 0;
 
     // Helperi pentru a găsi cel mai apropiat bloc cu ghilimele înainte / după
+    // Căutăm doar până la 4 blocuri înapoi/înainte pentru a evita propagarea pe toată subtitrarea
+    const MAX_LOOKBACK = 4;
+    const MAX_LOOKAHEAD = 4;
+
     const findPrevQuotedBlock = (index: number): SubtitleBlock | undefined => {
-      for (let j = index - 1; j >= 0; j--) {
+      for (let step = 1; step <= MAX_LOOKBACK; step++) {
+        const j = index - step;
+        if (j < 0) break;
         if (blocks[j].hasAnyQuotes) {
           return blocks[j];
         }
@@ -101,7 +107,9 @@ export default function Home() {
     };
 
     const findNextQuotedBlock = (index: number): SubtitleBlock | undefined => {
-      for (let j = index + 1; j < blocks.length; j++) {
+      for (let step = 1; step <= MAX_LOOKAHEAD; step++) {
+        const j = index + step;
+        if (j >= blocks.length) break;
         if (blocks[j].hasAnyQuotes) {
           return blocks[j];
         }
