@@ -14,6 +14,7 @@ export default function Home() {
       endIndex: number;
       subtitleLines: string[];
       hasAnyQuotes: boolean;
+      allLinesFullyWrapped: boolean;
     };
 
     const blocks: SubtitleBlock[] = [];
@@ -47,19 +48,28 @@ export default function Home() {
         }
 
         let hasAnyQuotes = false;
+        let allLinesFullyWrapped = true;
 
         if (subtitleLines.length > 0) {
-          hasAnyQuotes = subtitleLines.some((rawLine) => {
+          for (const rawLine of subtitleLines) {
             const t = rawLine.trim();
-            return (
-              t.startsWith('„') ||
-              t.startsWith('”') ||
-              t.startsWith('"') ||
-              t.endsWith('„') ||
-              t.endsWith('”') ||
-              t.endsWith('"')
-            );
-          });
+            if (!t) continue;
+
+            const startsWithQuote =
+              t.startsWith('„') || t.startsWith('”') || t.startsWith('"');
+            const endsWithQuote = t.endsWith('„') || t.endsWith('”') || t.endsWith('"');
+
+            if (startsWithQuote || endsWithQuote) {
+              hasAnyQuotes = true;
+            }
+
+            // Dacă există vreo linie cu ghilimele doar pe o singură margine
+            // (sau deloc pe margini, dar vom considera doar marginea),
+            // blocul NU este complet ghilimeat.
+            if (startsWithQuote !== endsWithQuote) {
+              allLinesFullyWrapped = false;
+            }
+          }
         }
 
         blocks.push({
@@ -67,6 +77,7 @@ export default function Home() {
           endIndex,
           subtitleLines,
           hasAnyQuotes,
+          allLinesFullyWrapped,
         });
 
         i = endIndex + 1;
@@ -91,9 +102,15 @@ export default function Home() {
 
         // Decidem dacă normalizăm:
         // - dacă blocul are deja ghilimele
-        // - SAU dacă este între două blocuri cu ghilimele (cazul cu ghilimele doar la început și sfârșit)
+        // - SAU dacă este între două blocuri cu ghilimele, DAR numai dacă cele două blocuri vecine
+        //   nu sunt deja complet ghilimeate (adică ele însele sunt cazuri incomplete la nivel de dialog)
         const shouldNormalize =
-          hasAnyQuotes || (!!prev && !!next && prev.hasAnyQuotes && next.hasAnyQuotes);
+          hasAnyQuotes ||
+          (!!prev &&
+            !!next &&
+            prev.hasAnyQuotes &&
+            next.hasAnyQuotes &&
+            !(prev.allLinesFullyWrapped && next.allLinesFullyWrapped));
 
         if (shouldNormalize && subtitleLines.length > 0) {
           for (let k = 0; k < subtitleLines.length; k++) {
