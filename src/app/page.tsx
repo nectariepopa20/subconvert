@@ -208,7 +208,11 @@ export default function Home() {
               break;
             }
           }
-          if (closeIdx === -1) closeIdx = openIdx;
+          if (closeIdx === -1) {
+            // Dacă nu găsim o ghilimea de închidere, în blocurile multi-rând
+            // punem închiderea pe ultimul rând; altfel, pe același rând.
+            closeIdx = subtitleLines.length > 1 && openIdx !== lastIdx ? lastIdx : openIdx;
+          }
 
           if (openIdx === closeIdx) {
             // Un singur rând învelit
