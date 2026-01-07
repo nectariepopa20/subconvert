@@ -182,35 +182,27 @@ export default function Home() {
           const firstIdx = 0;
           const lastIdx = subtitleLines.length - 1;
 
-          for (let k = 0; k < subtitleLines.length; k++) {
-            const original = subtitleLines[k];
-            const trimmed = original.trim();
+          const stripLeadingQuote = (s: string) => s.replace(/^[„”"]\s*/, '');
+          const stripTrailingQuote = (s: string) =>
+            s
+              .replace(/\s*[„”"]\s*$/, '')
+              .replace(/([„”"])\s*([.!?,;:]?)$/, '$2');
 
-            // Curăță ghilimelele de la margini (inclusiv cu punctuație lipită la final)
-            const cleaned = trimmed
-              .replace(/^[„”"]\s*/, '')
-              .replace(/\s*[„”"]\s*$/, '');
+          const cleaned = subtitleLines.map((line) => {
+            const t = line.trim();
+            return stripTrailingQuote(stripLeadingQuote(t));
+          });
 
-            // Dacă blocul are o singură linie de text, pun ghilimele doar pe margini o singură dată
-            if (firstIdx === lastIdx) {
-              subtitleLines[k] = `"${cleaned}"`;
-              continue;
+          if (firstIdx === lastIdx) {
+            // Un singur rând de text în bloc: ghilimele pe ambele margini
+            subtitleLines[0] = `"${cleaned[0]}"`;
+          } else {
+            // Mai multe rânduri de text: ghilimea de deschidere pe primul, de închidere pe ultimul
+            subtitleLines[firstIdx] = `"${cleaned[firstIdx]}`;
+            for (let k = firstIdx + 1; k < lastIdx; k++) {
+              subtitleLines[k] = cleaned[k];
             }
-
-            // Prima linie primește doar ghilimeaua de deschidere
-            if (k === firstIdx) {
-              subtitleLines[k] = `"${cleaned}`;
-              continue;
-            }
-
-            // Ultima linie primește doar ghilimeaua de închidere
-            if (k === lastIdx) {
-              subtitleLines[k] = `${cleaned}"`;
-              continue;
-            }
-
-            // Liniile din mijloc rămân fără ghilimele (dar cu textul curățat)
-            subtitleLines[k] = cleaned;
+            subtitleLines[lastIdx] = `${cleaned[lastIdx]}"`;
           }
         }
 
