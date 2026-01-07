@@ -179,9 +179,6 @@ export default function Home() {
                 !nextQuoted.allLinesFullyWrapped)));
 
         if (shouldNormalize && subtitleLines.length > 0) {
-          const firstIdx = 0;
-          const lastIdx = subtitleLines.length - 1;
-
           const stripLeadingQuote = (s: string) => s.replace(/^[„”"]\s*/, '');
           const stripTrailingQuote = (s: string) =>
             s
@@ -193,16 +190,43 @@ export default function Home() {
             return stripTrailingQuote(stripLeadingQuote(t));
           });
 
+          // Identificăm liniile care au ghilimele pe margini în textul original
+          const edgeQuotedIndices: number[] = [];
+          subtitleLines.forEach((line, idx) => {
+            const t = line.trim();
+            const starts = /^[„”"]/.test(t);
+            const ends = /[„”"]\s*[.!?,;:]?$/.test(t);
+            if (starts || ends) edgeQuotedIndices.push(idx);
+          });
+
+          const firstIdx = edgeQuotedIndices.length > 0 ? Math.min(...edgeQuotedIndices) : 0;
+          const lastIdx =
+            edgeQuotedIndices.length > 0
+              ? Math.max(...edgeQuotedIndices)
+              : subtitleLines.length - 1;
+
           if (firstIdx === lastIdx) {
-            // Un singur rând de text în bloc: ghilimele pe ambele margini
-            subtitleLines[0] = `"${cleaned[0]}"`;
+            // Doar o linie are ghilimele la margini: învelim doar acea linie
+            for (let k = 0; k < subtitleLines.length; k++) {
+              if (k === firstIdx) {
+                subtitleLines[k] = `"${cleaned[k]}"`;
+              } else {
+                subtitleLines[k] = cleaned[k];
+              }
+            }
           } else {
-            // Mai multe rânduri de text: ghilimea de deschidere pe primul, de închidere pe ultimul
-            subtitleLines[firstIdx] = `"${cleaned[firstIdx]}`;
-            for (let k = firstIdx + 1; k < lastIdx; k++) {
+            // Interval de linii cu ghilimele: deschidere pe prima, închidere pe ultima, mijlocul neatins
+            for (let k = 0; k < subtitleLines.length; k++) {
+              if (k === firstIdx) {
+                subtitleLines[k] = `"${cleaned[k]}`;
+                continue;
+              }
+              if (k === lastIdx) {
+                subtitleLines[k] = `${cleaned[k]}"`;
+                continue;
+              }
               subtitleLines[k] = cleaned[k];
             }
-            subtitleLines[lastIdx] = `${cleaned[lastIdx]}"`;
           }
         }
 
